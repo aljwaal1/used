@@ -873,31 +873,42 @@ public class MainActivity extends Activity {
         }
 
         private boolean isUserFacing(String pkg) {
-            if (pkg == null || pkg.equals(context.getPackageName())
-                    || "com.android.systemui".equals(pkg)) return false;
+            if (pkg == null || pkg.trim().isEmpty()) return false;
+            if (pkg.equals(context.getPackageName())
+                    || "android".equals(pkg)
+                    || "com.android.systemui".equals(pkg)
+                    || "com.google.android.gms".equals(pkg)
+                    || "com.google.android.gsf".equals(pkg)
+                    || "com.google.android.permissioncontroller".equals(pkg)) {
+                return false;
+            }
+
+            // UsageStats can legitimately contain a package that PackageManager
+            // cannot resolve because of Android package-visibility filtering,
+            // or because the app was later uninstalled. Do not discard that
+            // historical usage: keep it and fall back to the package id as label.
             try {
                 ApplicationInfo info = pm.getApplicationInfo(pkg, 0);
                 return pm.getLaunchIntentForPackage(pkg) != null
                         || (info.flags & ApplicationInfo.FLAG_SYSTEM) == 0
                         || "com.android.settings".equals(pkg);
             } catch (PackageManager.NameNotFoundException e) {
-                return false;
+                return true;
             }
         }
 
         private boolean isUserFacingOrArchived(String pkg) {
-            if (pkg == null || pkg.equals(context.getPackageName())
-                    || "com.android.systemui".equals(pkg)) return false;
-            return isUserFacing(pkg) || !db.latestLabel(pkg).equals(pkg);
+            return isUserFacing(pkg);
         }
 
         private String labelFor(String pkg) {
             try {
                 ApplicationInfo info = pm.getApplicationInfo(pkg, 0);
-                CharSequence label = pm.getApplicationLabel(info);
-                return label == null ? pkg : label.toString();
+                CharSequence appLabel = pm.getApplicationLabel(info);
+                return appLabel == null ? pkg : appLabel.toString();
             } catch (Exception e) {
-                return db.latestLabel(pkg);
+                String archived = db.latestLabel(pkg);
+                return archived == null || archived.trim().isEmpty() ? pkg : archived;
             }
         }
 
