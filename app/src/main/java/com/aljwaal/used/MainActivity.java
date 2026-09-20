@@ -84,7 +84,6 @@ public class MainActivity extends Activity {
     protected void onCreate(Bundle state) {
         super.onCreate(state);
         repository = new UsageRepository(this);
-        ArchiveJobService.schedule(this);
         buildUi();
     }
 
